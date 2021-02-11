@@ -25,7 +25,6 @@ MESSAGE DC.B 'ENTER GAMER SCORE',0
 
     END    START        ; last line of source
 
-
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~

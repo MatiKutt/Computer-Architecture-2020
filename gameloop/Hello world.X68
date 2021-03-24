@@ -1,11 +1,7 @@
 *-------------------------------------------------------
 * Starting memory  ress for the programme $1000
 *-------------------------------------------------------
-    
     org $1000
-
-*-------------------------------------------------------
-*Choose to be a Plumber or a Rabbit 
 *-------------------------------------------------------
 
 *-------------------------------------------------------
@@ -20,7 +16,7 @@ max_weapons EQU 3      max weapons
 win_point   EQU 5      points accumilated on win
 lose_point  EQU 8      points deducted on a loss
 
-mine_loc    EQU 100    used below for some simple collision detection using CMP
+mine_loc    EQU 99    used below for some simple collision detection using CMP
                        * example for a hit
 
 
@@ -28,10 +24,20 @@ mine_loc    EQU 100    used below for some simple collision detection using CMP
 
 *Start of Game
 start:
-    move.b  #100,$4000 put score/health in memory location $4000
+    move.b  #20,$4000 put score/health in memory location $4000
     lea     $4000,A3   assign address A3 to that memory location
+    
+    move.b  #10,$4500 put enemy health in memory location $4500
+    lea     $4500,A5   assign address A5 to that memory location
+    
+    
+    move.b  #2,$5000 put potions in memory location $5000
+    lea     $5000,A4   assign address A4 to that memory location
 
+    move.b  #1,$4750 put hit/miss in memory location $4750
+    lea     $4750,A6   assign address A6  to that memory location
 
+    
     bsr     welcome    branch to the welcome subroutine
     bsr     input      branch to the input subroutine
     bsr     game       branch to the game subroutine
@@ -119,6 +125,11 @@ potions:
     lea     potions_msg,A1
     move.b  #14,D0
     trap    #15
+    
+    move.w  (A4),A1
+    move.b  #14,D0
+    trap    #15
+    
     bsr     decorate
     rts
 
@@ -135,18 +146,85 @@ weapons:
     bsr     decorate
     rts
 
+
+
+
+
+
+*-------------------------------*
+NEXT_LEVEL
+    move.b #10,(A5)
+    lea     next_level_msg,A1
+    
+    move    #14,D0
+    trap    #15
+      *-----Wait for input ------*
+    move    #5,D0
+    trap    #15
+    bsr     clear_screen 
+
 *-------------------------------------------------------
 *---Game Play (Quest Progress)--------------------------
 *------------------------------------------------------- 
 gameplay:
+
+    *--- END PROGRAM IF HEALTH 0 ----*
+    cmp.b #0,(A3)
+    beq EXIT
+
+    cmp.b #0,(A5)
+    beq NEXT_LEVEL
+
+
+    *-----Wait for input ------*
+    move    #5,D0
+    trap    #15
+    bsr     clear_screen 
+    
+    
+    clr D1
     bsr     endl
     bsr     decorate
     lea     gameplay_msg,A1
     move.b  #14,D0
     trap    #15
-*----Hello world----*
+    
+    *----show Potions-----*
+    bsr endl
+    lea     potions_msg,A1
+    move    #14,D0
+    trap    #15
+      
+    move.b (A4),D1
+    move    #3,D0
+    trap    #15
+    clr D1
+
+    
+    
+    *-----show enemy health currently -----*
+    bsr     endl
     bsr     decorate
-    lea     helloWorld_msg,A1
+    lea     enemy_health_msg,A1
+    move.b  #14,D0
+    trap    #15
+  
+    move.b (A5),D1
+    move    #3,D0
+    trap    #15
+    
+    
+    *-health-*
+     bsr hud
+     
+     
+     
+*----Choose Move----*
+  
+    
+
+    bsr     decorate
+    lea     player_move_msg,A1
     move.b  #14,D0
     trap    #15
     
@@ -154,20 +232,45 @@ gameplay:
     move.b  #4,D0
     trap    #15
     bsr     decorate
-    bsr     collision
-    rts
-
+    
+    *--if player inputs 1, attack--*
+    cmp     #1,D1          
+    beq     roll_attack
+   
+   *--if player inputs 2, drink potion--*
+   cmp     #2,D1          
+   beq     try_potion
+    
+    
+   *--if player inputs 3, block--*
+   cmp     #3,D1          
+   beq     block
+   
+   
+   
+   
+    
+    
+block:
+   
+    lea     block_msg,A1
+    move.b  #14,D0
+    trap    #15
+    bsr gameplay
+   
 *-------------------------------------------------------
 *-----------------Heads Up Display (Score)--------------
 * Retrieves the score from memory location
 *-------------------------------------------------------   
 hud:
 
+
     bsr     endl
     bsr     decorate
     lea     hud_msg,A1
     move.b  #14,D0
     trap    #15
+    
     move.b  (A3),D1     retrieve the value A3 point to and move to D1
     move.b  #3,D0       move literal 3 to D0
     trap    #15         intrepret value in D0, which 3 which displays D1
@@ -180,22 +283,64 @@ hud:
 *-------------------------------------------------------
 collision:
     move.b  #mine_loc,D1
-    cmp     #100,D1 is( x == 100)?
+    cmp     #99,D1 is( x == 100)?
 	bne     collision_miss if x is equal to 100, then hit
+	
+	
 collision_hit:
     *hit
+    clr  (A6)
+
+    move    #1,(A6) 
     lea     hit_msg,A1
     move    #14,D0
     trap    #15
-    rts
+    sub.b   #2,(A5)
+   
+    
+    bsr gameplay
     
 collision_miss:
     *miss
+    clr  (A6)
+    move #2,(A6)
+    sub.b   #1,(A3)
     lea     miss_msg,A1
     move    #14,D0
     trap    #15
-    rts
+    bsr gameplay
 
+
+    
+try_potion:
+
+    cmp.b     #0,(A4)
+    bne drink_potion
+    beq     collision
+    bsr gameplay
+    
+    
+drink_potion:
+    
+    lea     potions_msg,A1
+    move    #14,D0
+    trap    #15
+    add.b   #2,(A3)
+    sub.b   #1,(A4)
+
+
+    move.b (A4),D1
+    move    #3,D0
+    trap    #15
+    
+    
+   bsr gameplay
+
+roll_attack:
+    cmp.b     #1,(A6)
+    
+    beq collision_miss
+    bne collision_hit
 *-------------------------------------------------------
 *--------------------------Loop-------------------------
 *-------------------------------------------------------
@@ -259,7 +404,7 @@ endl:
 crlf:           dc.b    $0D,$0A,0
 welcome_msg:    dc.b    '************************************************************'
                 dc.b    $0D,$0A
-                dc.b    'Avalon: The Legend Lives'
+                dc.b    'Rabbits vs. Plumbers'
                 dc.b    $0D,$0A
                 dc.b    '************************************************************'
                 dc.b    $0D,$0A,0
@@ -272,20 +417,37 @@ weapons_msg:    dc.b    'Each quest need at least 2 Weapons'
                 dc.b    'minimum requirement is 2 i.e. Sword x 1 and Speer x 1.'
                 dc.b    $0D,$0A
                 dc.b    'Enter # of weapons : ',0
-gameplay_msg:   dc.b    'Add Gameplay !',0
+gameplay_msg:   dc.b    'Make Your Move!!',0
 helloWorld_msg: dc.b    'hello world!',0
 update_msg:     dc.b    'Update Gameplay !',0
 draw_msg:       dc.b    'Draw Screen !',0
 hit_msg:        dc.b    'Strike!',0
 miss_msg:       dc.b    'Miss!',0
 loop_msg:       dc.b    '.',0
+player_move_msg: dc.b   '1: Attack'
+                 dc.b   $0D,$0A
+                 dc.b   '2: Drink potion'
+                 dc.b   $0D,$0A
+                 dc.b   '3: Block'
+                 dc.b   $0D,$0A,0
+enemy_health_msg: dc.b  'Enemy Health : ',$0D,$0A,0
+next_level_msg    dc.b  'You progress to the next floor',$0D,$0A,0
+                
+   
 replay_msg:     dc.b    'Enter 0 to Quit any other number to replay : ',0
-hud_msg:        dc.b    'Score : ',0
+block_msg:     dc.b    'You block your opponents attack! : ',0
+hud_msg:        dc.b    'Health : ',0
 
 health:     ds.w    1   Players Health
 score:      ds.w    1   Reserve space for score
 
     end start
+
+
+
+
+
+
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~

@@ -1,6 +1,6 @@
 00001000 Starting Address
 Assembler used: EASy68K Editor/Assembler v5.16.01
-Created On: 23/03/2021 16:54:34
+Created On: 24/03/2021 21:31:11
 
 00000000                             1  *-------------------------------------------------------
 00000000                             2  * Starting memory  ress for the programme $1000
@@ -341,7 +341,7 @@ Created On: 23/03/2021 16:54:34
 0000320C  6100 FED0                337     bsr gameplay
 00003210                           338  
 00003210                           339  roll_attack:
-00003210  0C16 0000                340      cmp.b     #0,(A6)
+00003210  0C16 0001                340      cmp.b     #1,(A6)
 00003214                           341      
 00003214  67B8                     342      beq collision_miss
 00003216  669E                     343      bne collision_hit
